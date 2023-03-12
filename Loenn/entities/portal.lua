@@ -52,17 +52,23 @@ portal.fieldInformation = {
     }
 }
 
-for direction, directionVal in pairs(directions) do
-    for colorName, color in pairs(colors) do
-        table.insert(portal.placements, {
-            name = direction .. colorName,
-            data = {
-                ["readyColor"] = colorName,
-                ["direction"] = direction
-            }
-        })
-    end
+for i, j in pairs(directions) do
+    table.insert(portal.placements, {
+        name = i,
+        data = {
+            ["readyColor"] = "Purple",
+            direction = i,
+            cooldownTimer = 0.0
+        }
+    })
 end
+
+portal.fieldOrder = {
+    "x", "y",
+    "direction",
+    "readyColor",
+    "cooldownTimer"
+}
 
 local nonDirectionalTexture = "objects/outback/portal/idle00"
 local directionalTexture = "objects/outback/portal/directional00"
@@ -92,7 +98,7 @@ end
 function portal.rectangle(room, entity)
     local x, y = entity.x or 0, entity.y or 0
     local direction = entity["direction"] or "None"
-    
+
     if direction == "None" then
         return utils.rectangle(x - 7, y - 7, 14, 14)
     elseif direction == "Up" then

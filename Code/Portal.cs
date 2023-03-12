@@ -20,6 +20,7 @@ namespace Celeste.Mod.OutbackHelper {
             this.portalNodes = nodes;
             base.Depth = -9999;
             this.portal = base.Get<Sprite>();
+            this.maxCooldown = data.Float("cooldownTimer", 0f);
             base.Add(this.portal = OutbackModule.SpriteBank.Create("portal"));
             base.Add(new PlayerCollider(new Action<Player>(this.OnPlayer), null, new Hitbox(30f, 30f, -15f, -15f)));
             this.portal.CenterOrigin();
@@ -123,24 +124,30 @@ namespace Celeste.Mod.OutbackHelper {
 
 
         public override void Update() {
-            bool flag = this.teleportCooldown > 0f;
+            //general cooldown
+            this.cooldown -= Engine.DeltaTime;
+            base.Collidable = this.cooldown < 0;
+
+            //cooldown while the play is inside the portal
+            bool flag = this.teleportInsideCooldown > 0f;
             if (flag) {
                 bool flag2 = this.direction == 1;
                 if (flag2) {
-                    this.teleportCooldown -= Engine.DeltaTime;
+                    this.teleportInsideCooldown -= Engine.DeltaTime;
                 }
-                this.portal.Color = this.cooldownColor;
                 bool flag3 = !base.CollideCheck(this.playerEntity);
                 if (flag3) {
-                    this.teleportCooldown = 0f;
+                    this.teleportInsideCooldown = 0f;
                     bool flag4 = this.playerEntity.StateMachine.State == 11;
                     if (flag4) {
                         this.playerEntity.StateMachine.State = 0;
                     }
                 }
-            } else {
+            } else if(base.Collidable && this.portal.Color == cooldownColor) {
                 this.portal.Color = this.readyColorsArray[this.readyColor];
+                this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), false);
             }
+
             base.Update();
         }
 
@@ -163,7 +170,7 @@ namespace Celeste.Mod.OutbackHelper {
 
 
         private void OnPlayer(Player player) {
-            bool flag = this.teleportCooldown <= 0f && otherPortal != null;
+            bool flag = this.teleportInsideCooldown <= 0f && otherPortal != null;
             if (flag) {
                 Portal portal = (Portal)this.otherPortal;
                 bool flag2 = this.direction == 0;
@@ -254,8 +261,13 @@ namespace Celeste.Mod.OutbackHelper {
                 this.level.Displacement.AddBurst(this.otherPortal.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Displacement.AddBurst(this.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Particles.Emit(Player.P_Split, 16, this.otherPortal.Center, Vector2.One * 6f);
-                portal.teleportCooldown = 0.5f;
-                this.teleportCooldown = 0.5f;
+                portal.teleportInsideCooldown = 0.5f;
+                this.teleportInsideCooldown = 0.5f;
+                portal.cooldown = portal.maxCooldown;
+                this.cooldown = this.maxCooldown;
+                portal.portal.Color = this.cooldownColor;
+                this.portal.Color = this.cooldownColor;
+                this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), true);
             }
         }
 
@@ -278,7 +290,7 @@ namespace Celeste.Mod.OutbackHelper {
         private Entity otherPortal;
 
 
-        private const float maxTeleportCooldown = 0.5f;
+        private readonly float maxCooldown;
 
 
         private int readyColor;
@@ -326,7 +338,10 @@ namespace Celeste.Mod.OutbackHelper {
         private Color cooldownColor = new Color(1f, 0.5f, 0.5f);
 
 
-        public float teleportCooldown;
+        public float teleportInsideCooldown;
+
+
+        private float cooldown;
 
 
         private List<Entity> portals;
