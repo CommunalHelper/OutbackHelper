@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
-using Monocle;
 
 namespace Celeste.Mod.OutbackHelper {
     [Tracked(false)]
@@ -62,6 +62,8 @@ namespace Celeste.Mod.OutbackHelper {
                 });
             }
             this.light.Visible = true;
+            this.fixRotationAngle = data.Bool("fixRotationAngle");
+            this.wallSpeedRetentionProtection = data.Bool("wallSpeedRetentionProtection");
         }
 
 
@@ -80,8 +82,10 @@ namespace Celeste.Mod.OutbackHelper {
         public override void Awake(Scene scene) {
             base.Awake(scene);
             this.playerEntities = scene.Entities.OfType<Player>().ToList<Player>();
-            if (playerEntities.Count == 0)
+            if (playerEntities.Count == 0) {
                 return;
+            }
+
             this.playerEntity = this.playerEntities[0];
             bool flag = this.direction != 0;
             if (flag) {
@@ -143,7 +147,7 @@ namespace Celeste.Mod.OutbackHelper {
                         this.playerEntity.StateMachine.State = 0;
                     }
                 }
-            } else if(base.Collidable && this.portal.Color == cooldownColor) {
+            } else if (base.Collidable && this.portal.Color == cooldownColor) {
                 this.portal.Color = this.readyColorsArray[this.readyColor];
                 this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), false);
             }
@@ -195,8 +199,8 @@ namespace Celeste.Mod.OutbackHelper {
                     }
                     Vector2 vec2 = this.otherPortal.Center + new Vector2(0f, 6f) + this.directionsArray[portal.direction - 1] * 5f;
                     player.Position = vec2.Round();
-                    float radians = (float)((double)(portal.portal.Rotation - this.portal.Rotation) + 3.141592653589793);
-                    Vector2 vector = new Vector2((float)Math.Cos((double)this.portal.Rotation), -(float)Math.Sin((double)this.portal.Rotation));
+                    //IDE0059 Remove unnecessary value assignment
+                    //Vector2 vector = new Vector2((float)Math.Cos((double)this.portal.Rotation), -(float)Math.Sin((double)this.portal.Rotation));
                     List<Solid> list = base.Scene.CollideAll<Solid>(new Rectangle((int)portal.X, (int)portal.Y, (int)this.directionsArray[portal.direction - 1].X * 8, (int)this.directionsArray[portal.direction - 1].Y * 8));
                     List<SolidTiles> list2 = base.Scene.CollideAll<SolidTiles>(new Rectangle((int)portal.X, (int)portal.Y, (int)this.directionsArray[portal.direction - 1].X * 8, (int)this.directionsArray[portal.direction - 1].Y * 8));
                     foreach (Entity entity in base.Scene.Tracker.GetEntities<Platform>()) {
@@ -218,7 +222,33 @@ namespace Celeste.Mod.OutbackHelper {
                     }
                     int facingInt = (directionsArray[direction - 1].X == directionsArray[portal.direction - 1].X) ? -(int)player.Facing : (int)player.Facing;
                     player.Facing = (Facings)facingInt;
-                    player.Speed = Vector2.Transform(player.Speed, Matrix.CreateRotationZ(radians));
+
+                    if (wallSpeedRetentionProtection) {
+                        if (player.wallSpeedRetentionTimer > 0f) {
+                            player.wallSpeedRetentionTimer = 0f;
+                            player.Speed.X = player.wallSpeedRetained;
+                        }
+                    }
+
+                    if (fixRotationAngle) {
+                        static int realloc(int old) => old switch {
+                            2 => 3,
+                            3 => 2,
+                            _ => old,
+                        };
+                        int radians = (realloc(portal.direction) - realloc(this.direction) + 4 + 2) % 4;
+                        var speed = player.Speed;
+                        player.Speed = radians switch {
+                            0 => speed,
+                            1 => new Vector2(speed.Y, -speed.X),
+                            2 => -speed,
+                            3 => new Vector2(-speed.Y, speed.X),
+                            _ => throw new Exception("How?"),
+                        };
+                    } else {
+                        float radians = (float)((double)(portal.portal.Rotation - this.portal.Rotation) + 3.141592653589793);
+                        player.Speed = Vector2.Transform(player.Speed, Matrix.CreateRotationZ(radians));
+                    }
                     bool flag10 = player.StateMachine.State == 2;
                     if (flag10) {
                         player.StateMachine.State = 11;
@@ -360,6 +390,12 @@ namespace Celeste.Mod.OutbackHelper {
 
 
         private bool hasStaticMover = false;
+
+
+        private bool fixRotationAngle;
+
+
+        private bool wallSpeedRetentionProtection;
 
 
         private enum ReadyColors {

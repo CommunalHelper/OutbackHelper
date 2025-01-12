@@ -8,6 +8,8 @@ entities.outback/portal.placements.name.Right=Portal (Right)
 entities.outback/portal.attributes.description.readyColor=The color of the portal.
 entities.outback/portal.attributes.description.direction=The direction the portal is facing.
 entities.outback/portal.attributes.description.cooldownTimer=The number of seconds the portal is intangible after teleporting.\nUsually, the portal only has a cooldown while the player is inside it.\n(default 0)
+entities.outback/portal.attributes.description.fixRotationAngle=Fix a bug where the player's speed sometimes rotated an additional 0.0000025 degrees.
+entities.outback/portal.attributes.description.wallSpeedRetentionProtection=Gain retained wall speed before getting through the portal, rather than after. (so your velocity can be rotated correctly.)
 
 # Timed Touch Switch
 entities.outback/timedtouchswitch.placements.name.Slow=Timed Touch Switch (Slow)

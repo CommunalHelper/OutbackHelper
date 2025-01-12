@@ -16,9 +16,10 @@
     </ItemDefinitionGroup>
 
     <ItemGroup>
-        <Reference Include="$(CelestePrefix)\Celeste.dll" />
+        <PackageReference Include="CelesteMod.Publicizer" Version="*" CelesteAssembly="$(CelestePrefix)\Celeste.dll" />
         <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" />
         <Reference Include="$(CelestePrefix)\FNA.dll" />
+        <Reference Include="$(CelestePrefix)\MonoMod.Utils.dll" />
     </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="Build">

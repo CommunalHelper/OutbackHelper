@@ -58,7 +58,9 @@ for i, j in pairs(directions) do
         data = {
             ["readyColor"] = "Purple",
             direction = i,
-            cooldownTimer = 0.0
+            cooldownTimer = 0.0,
+            fixRotationAngle = true,
+            wallSpeedRetentionProtection = false,
         }
     })
 end
@@ -112,4 +114,24 @@ function portal.rectangle(room, entity)
     end
 end
 
+function portal.rotate(room, entity, direction)
+    local directionsLookup = {
+        [0] = "Right",
+        [1] = "Up",
+        [2] = "Left",
+        [3] = "Down",
+        ["Right"] = 0,
+        ["Up"] = 1,
+        ["Left"] = 2,
+        ["Down"] = 3,
+    }
+
+    local dir = entity.direction or "None"
+    if dir == "None" then
+        return false
+    end
+    dir = (directionsLookup[dir] - direction + 4) % 4
+    entity.direction = directionsLookup[dir]
+    return true
+end
 return portal
