@@ -22,7 +22,7 @@ namespace Celeste.Mod.OutbackHelper {
             base.Depth = -9999;
             this.portal = base.Get<Sprite>();
             this.maxCooldown = data.Float("cooldownTimer", 0f);
-            this.freezeCooldown = data.Float("freezeTimer", 0.5f);
+            this.freezeCooldown = data.Float("freezeTimer", -1f);
             base.Add(this.portal = OutbackModule.SpriteBank.Create("portal"));
             base.Add(new PlayerCollider(new Action<Player>(this.OnPlayer), null, new Hitbox(30f, 30f, -15f, -15f)));
             this.portal.CenterOrigin();
@@ -266,10 +266,10 @@ namespace Celeste.Mod.OutbackHelper {
                 this.level.Displacement.AddBurst(this.otherPortal.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Displacement.AddBurst(this.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Particles.Emit(Player.P_Split, 16, this.otherPortal.Center, Vector2.One * 6f);
-                portal.teleportInsideCooldown = 0.5f + freezeCooldown;
-                this.teleportInsideCooldown = 0.5f + freezeCooldown;
-                portal.cooldown = portal.maxCooldown + freezeCooldown;
-                this.cooldown = this.maxCooldown + freezeCooldown;
+                portal.teleportInsideCooldown = 0.5f + realFreezeTime;
+                this.teleportInsideCooldown = 0.5f + realFreezeTime;
+                portal.cooldown = portal.maxCooldown + realFreezeTime;
+                this.cooldown = this.maxCooldown + realFreezeTime;
                 portal.portal.Color = this.cooldownColor;
                 this.portal.Color = this.cooldownColor;
                 this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), true);
@@ -284,11 +284,11 @@ namespace Celeste.Mod.OutbackHelper {
             if (distanceSq > 100f) {
                 while (transportAt < 1f) {
                     yield return null;
-                    transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / freezeCooldown);
+                    transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / realFreezeTime);
                     this.level.Camera.Position = Vector2.Lerp(cameraFrom, cameraTo, Ease.CubeOut(transportAt));
                 }
             } else {
-                yield return freezeCooldown;
+                yield return realFreezeTime;
             }
             this.level.Camera.Position = cameraTo;
             this.level.OnEndOfFrame += delegate() {
@@ -365,6 +365,11 @@ namespace Celeste.Mod.OutbackHelper {
 
 
         public float freezeCooldown = 0f;
+
+
+        private float realFreezeTime {
+            get => freezeCooldown < 0f ? OutbackModule.Settings.FreezeTime : freezeCooldown;
+        }
 
 
         public float teleportInsideCooldown;

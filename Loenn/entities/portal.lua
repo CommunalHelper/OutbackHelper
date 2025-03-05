@@ -59,7 +59,7 @@ for i, j in pairs(directions) do
             ["readyColor"] = "Purple",
             direction = i,
             cooldownTimer = 0.0,
-            freezeTimer = 0.5,
+            freezeTimer = -1.0,
         }
     })
 end

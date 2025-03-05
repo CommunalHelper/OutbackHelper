@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -6,6 +7,15 @@ namespace Celeste.Mod.OutbackHelper
 {
     public class OutbackModule : EverestModule
     {
+        public static OutbackModule Instance;
+
+        public OutbackModule() {
+            Instance = this;
+        }
+
+        public override Type SettingsType => typeof(OutbackModuleSettings);
+        public static OutbackModuleSettings Settings => (OutbackModuleSettings) Instance._Settings;
+
         public static SpriteBank SpriteBank;
     
         private static FieldInfo pufferPushRadius = typeof(Puffer).GetField("pushRadius", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -86,6 +96,42 @@ namespace Celeste.Mod.OutbackHelper
                 }
             }
             return true;
+        }
+    }
+
+    public class OutbackModuleSettings : EverestModuleSettings
+    {
+        public enum FreezeTimerValues
+        {
+            None,
+            VeryShort,
+            Short,
+            Medium,
+            Long,
+            VeryLong
+        }
+
+        public FreezeTimerValues DefaultPortalFreezeTime { get; set; } = FreezeTimerValues.None;
+
+        public float FreezeTime {
+            get {
+                switch (DefaultPortalFreezeTime) {
+                    case FreezeTimerValues.None:
+                        return 0f;
+                    case FreezeTimerValues.VeryShort:
+                        return 0.1f;
+                    case FreezeTimerValues.Short:
+                        return 0.2f;
+                    case FreezeTimerValues.Medium:
+                        return 0.3f;
+                    case FreezeTimerValues.Long:
+                        return 0.5f;
+                    case FreezeTimerValues.VeryLong:
+                        return 1f;
+                    default:
+                        return 0f;
+                }
+            }
         }
     }
 }
