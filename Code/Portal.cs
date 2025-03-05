@@ -277,21 +277,21 @@ namespace Celeste.Mod.OutbackHelper {
         }
 
         private IEnumerator Transport(Player player, Vector2 cameraFrom) {
-            // this.AddTag(Tags.FrozenUpdate);
             this.level.Frozen = true;
             float transportAt = 0f;
             Vector2 cameraTo = this.level.GetFullCameraTargetAt(player, player.Position);
-            while (transportAt < 1f) {
-                yield return null;
-                transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / freezeCooldown);
-                if (transportAt > 0.9f) {
-                    this.level.Camera.Position = cameraTo;
-                } else {
+            float distanceSq = Vector2.DistanceSquared(cameraFrom, cameraTo);
+            if (distanceSq > 100f) {
+                while (transportAt < 1f) {
+                    yield return null;
+                    transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / freezeCooldown);
                     this.level.Camera.Position = Vector2.Lerp(cameraFrom, cameraTo, Ease.CubeOut(transportAt));
                 }
+            } else {
+                yield return freezeCooldown;
             }
+            this.level.Camera.Position = cameraTo;
             this.level.OnEndOfFrame += delegate() {
-                // this.RemoveTag(Tags.FrozenUpdate);
                 this.level.Frozen = false;
             };
             yield break;
