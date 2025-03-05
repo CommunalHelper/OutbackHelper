@@ -1,5 +1,5 @@
 - Name: OutbackHelper
-  Version: 1.7.3
+  Version: 1.8.0
   DLL: Code/bin/OutbackHelper.dll
   Dependencies:
     - Name: EverestCore

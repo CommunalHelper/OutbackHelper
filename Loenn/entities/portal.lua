@@ -58,7 +58,8 @@ for i, j in pairs(directions) do
         data = {
             ["readyColor"] = "Purple",
             direction = i,
-            cooldownTimer = 0.0
+            cooldownTimer = 0.0,
+            freezeTimer = 0.5,
         }
     })
 end
@@ -67,7 +68,8 @@ portal.fieldOrder = {
     "x", "y",
     "direction",
     "readyColor",
-    "cooldownTimer"
+    "cooldownTimer",
+    "freezeTimer",
 }
 
 local nonDirectionalTexture = "objects/outback/portal/idle00"

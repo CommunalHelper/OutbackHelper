@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -21,9 +22,11 @@ namespace Celeste.Mod.OutbackHelper {
             base.Depth = -9999;
             this.portal = base.Get<Sprite>();
             this.maxCooldown = data.Float("cooldownTimer", 0f);
+            this.freezeCooldown = data.Float("freezeTimer", 0.5f);
             base.Add(this.portal = OutbackModule.SpriteBank.Create("portal"));
             base.Add(new PlayerCollider(new Action<Player>(this.OnPlayer), null, new Hitbox(30f, 30f, -15f, -15f)));
             this.portal.CenterOrigin();
+            base.Tag = Tags.FrozenUpdate;
             bool flag = this.direction == 0;
             if (flag) {
                 this.portal.Play("idle", true, false);
@@ -172,6 +175,7 @@ namespace Celeste.Mod.OutbackHelper {
         private void OnPlayer(Player player) {
             bool flag = this.teleportInsideCooldown <= 0f && otherPortal != null;
             if (flag) {
+                Vector2 cameraFrom = this.level.Camera.Position;
                 Portal portal = (Portal)this.otherPortal;
                 bool flag2 = this.direction == 0;
                 if (flag2) {
@@ -258,17 +262,39 @@ namespace Celeste.Mod.OutbackHelper {
                     }
                 }
                 Audio.Play("event:/char/badeline/disappear", player.Position);
+                base.Add(new Coroutine(this.Transport(player, cameraFrom), true));
                 this.level.Displacement.AddBurst(this.otherPortal.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Displacement.AddBurst(this.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Particles.Emit(Player.P_Split, 16, this.otherPortal.Center, Vector2.One * 6f);
-                portal.teleportInsideCooldown = 0.5f;
-                this.teleportInsideCooldown = 0.5f;
-                portal.cooldown = portal.maxCooldown;
-                this.cooldown = this.maxCooldown;
+                portal.teleportInsideCooldown = 0.5f + freezeCooldown;
+                this.teleportInsideCooldown = 0.5f + freezeCooldown;
+                portal.cooldown = portal.maxCooldown + freezeCooldown;
+                this.cooldown = this.maxCooldown + freezeCooldown;
                 portal.portal.Color = this.cooldownColor;
                 this.portal.Color = this.cooldownColor;
                 this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), true);
             }
+        }
+
+        private IEnumerator Transport(Player player, Vector2 cameraFrom) {
+            // this.AddTag(Tags.FrozenUpdate);
+            this.level.Frozen = true;
+            float transportAt = 0f;
+            Vector2 cameraTo = this.level.GetFullCameraTargetAt(player, player.Position);
+            while (transportAt < 1f) {
+                yield return null;
+                transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / freezeCooldown);
+                if (transportAt > 0.9f) {
+                    this.level.Camera.Position = cameraTo;
+                } else {
+                    this.level.Camera.Position = Vector2.Lerp(cameraFrom, cameraTo, Ease.CubeOut(transportAt));
+                }
+            }
+            this.level.OnEndOfFrame += delegate() {
+                // this.RemoveTag(Tags.FrozenUpdate);
+                this.level.Frozen = false;
+            };
+            yield break;
         }
 
 
@@ -336,6 +362,9 @@ namespace Celeste.Mod.OutbackHelper {
 
 
         private Color cooldownColor = new Color(1f, 0.5f, 0.5f);
+
+
+        public float freezeCooldown = 0f;
 
 
         public float teleportInsideCooldown;
