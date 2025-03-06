@@ -263,6 +263,7 @@ namespace Celeste.Mod.OutbackHelper {
                 }
                 Audio.Play("event:/char/badeline/disappear", player.Position);
                 base.Add(new Coroutine(this.Transport(player, cameraFrom), true));
+                base.Add(new Coroutine(this.EmitLine(), true));
                 this.level.Displacement.AddBurst(this.otherPortal.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Displacement.AddBurst(this.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Particles.Emit(Player.P_Split, 16, this.otherPortal.Center, Vector2.One * 6f);
@@ -277,23 +278,52 @@ namespace Celeste.Mod.OutbackHelper {
         }
 
         private IEnumerator Transport(Player player, Vector2 cameraFrom) {
+            // TODO division by 0
             this.level.Frozen = true;
             float transportAt = 0f;
             Vector2 cameraTo = this.level.GetFullCameraTargetAt(player, player.Position);
-            float distanceSq = Vector2.DistanceSquared(cameraFrom, cameraTo);
-            if (distanceSq > 100f) {
+            if (Vector2.Distance(cameraFrom, cameraTo) > 50f) {
                 while (transportAt < 1f) {
                     yield return null;
                     transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / realFreezeTime);
                     this.level.Camera.Position = Vector2.Lerp(cameraFrom, cameraTo, Ease.CubeOut(transportAt));
                 }
+                this.level.Camera.Position = cameraTo;
             } else {
                 yield return realFreezeTime;
             }
-            this.level.Camera.Position = cameraTo;
             this.level.OnEndOfFrame += delegate() {
                 this.level.Frozen = false;
             };
+            yield break;
+        }
+
+        private IEnumerator EmitLine() {
+            float lineDirection = Calc.Angle(this.Position, this.otherPortal.Position);
+            float lineLength = Vector2.Distance(this.Position, this.otherPortal.Position);
+
+            float emitAt = 0f;
+            float nextFrameEmitAt = 0f;
+            // how much to advance each frame, roughly 1.5 times faster than linear
+            float emitAtFrame = realFreezeTime <= 0.05f ? 1f :
+                Math.Min(Engine.DeltaTime / realFreezeTime, 1f);
+            // How much to advace each step, to keep constant spacing of 10 pixels
+            float emitAtStep = Calc.Clamp(0.00001f, 10f / lineLength, 0.2f);
+            // A guard to prevent dead loops
+            int emitCount = 0;
+            while (emitCount < 1000000 & emitAt < 1f) {
+                yield return null;
+                nextFrameEmitAt += emitAtFrame;
+                while (emitCount < 10000 & emitAt < Ease.CubeOut(nextFrameEmitAt)) {
+                    emitCount ++;
+                    emitAt += emitAtStep;
+                    this.level.ParticlesFG.Emit(
+                        P_PortalLine, 1,
+                        Vector2.Lerp(this.Position, this.otherPortal.Position, emitAt),
+                        Vector2.One * 2f,
+                        lineDirection);
+                }
+            }
             yield break;
         }
 
@@ -428,5 +458,8 @@ namespace Celeste.Mod.OutbackHelper {
 
             Right
         }
+
+
+        public static ParticleType P_PortalLine;
     }
 }

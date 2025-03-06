@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -26,6 +26,20 @@ namespace Celeste.Mod.OutbackHelper
         {
             Everest.Events.Level.OnLoadEntity += new Everest.Events.Level.LoadEntityHandler(this.OnLoadEntity);
             On.Celeste.Puffer.Explode += Puffer_Explode;
+            Portal.P_PortalLine = new ParticleType
+            {
+                Color = Color.White,
+                Color2 = Color.White * 0.7f,
+                ColorMode = ParticleType.ColorModes.Blink,
+                FadeMode = ParticleType.FadeModes.Late,
+                LifeMin = 0.3f,
+                LifeMax = 0.7f,
+                Size = 1f,
+                SpeedMin = 10f,
+                SpeedMax = 20f,
+                Acceleration = new Vector2(0f, 8f),
+                DirectionRange = 0.5f,
+            };
         }
 
         public override void LoadContent(bool firstLoad)
