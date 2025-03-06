@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -125,27 +125,14 @@ namespace Celeste.Mod.OutbackHelper
             VeryLong
         }
 
+        public static float[] FreezeTimerInSeconds = new float[] {
+            0f, 0.1f, 0.2f, 0.3f, 0.5f, 1f
+        };
+
         public FreezeTimerValues DefaultPortalFreezeTime { get; set; } = FreezeTimerValues.None;
 
         public float FreezeTime {
-            get {
-                switch (DefaultPortalFreezeTime) {
-                    case FreezeTimerValues.None:
-                        return 0f;
-                    case FreezeTimerValues.VeryShort:
-                        return 0.1f;
-                    case FreezeTimerValues.Short:
-                        return 0.2f;
-                    case FreezeTimerValues.Medium:
-                        return 0.3f;
-                    case FreezeTimerValues.Long:
-                        return 0.5f;
-                    case FreezeTimerValues.VeryLong:
-                        return 1f;
-                    default:
-                        return 0f;
-                }
-            }
+            get => FreezeTimerInSeconds[(int)DefaultPortalFreezeTime];
         }
     }
 }
