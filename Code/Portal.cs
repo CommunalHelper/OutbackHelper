@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -21,9 +22,11 @@ namespace Celeste.Mod.OutbackHelper {
             base.Depth = -9999;
             this.portal = base.Get<Sprite>();
             this.maxCooldown = data.Float("cooldownTimer", 0f);
+            this.freezeCooldown = data.Float("freezeTimer", -1f);
             base.Add(this.portal = OutbackModule.SpriteBank.Create("portal"));
             base.Add(new PlayerCollider(new Action<Player>(this.OnPlayer), null, new Hitbox(30f, 30f, -15f, -15f)));
             this.portal.CenterOrigin();
+            base.Tag = Tags.FrozenUpdate;
             bool flag = this.direction == 0;
             if (flag) {
                 this.portal.Play("idle", true, false);
@@ -172,6 +175,7 @@ namespace Celeste.Mod.OutbackHelper {
         private void OnPlayer(Player player) {
             bool flag = this.teleportInsideCooldown <= 0f && otherPortal != null;
             if (flag) {
+                Vector2 cameraFrom = this.level.Camera.Position;
                 Portal portal = (Portal)this.otherPortal;
                 bool flag2 = this.direction == 0;
                 if (flag2) {
@@ -258,17 +262,69 @@ namespace Celeste.Mod.OutbackHelper {
                     }
                 }
                 Audio.Play("event:/char/badeline/disappear", player.Position);
+                base.Add(new Coroutine(this.Transport(player, cameraFrom), true));
+                base.Add(new Coroutine(this.EmitLine(), true));
                 this.level.Displacement.AddBurst(this.otherPortal.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Displacement.AddBurst(this.Position, 0.35f, 8f, 48f, 0.25f, null, null);
                 this.level.Particles.Emit(Player.P_Split, 16, this.otherPortal.Center, Vector2.One * 6f);
-                portal.teleportInsideCooldown = 0.5f;
-                this.teleportInsideCooldown = 0.5f;
-                portal.cooldown = portal.maxCooldown;
-                this.cooldown = this.maxCooldown;
+                portal.teleportInsideCooldown = 0.5f + realFreezeTime;
+                this.teleportInsideCooldown = 0.5f + realFreezeTime;
+                portal.cooldown = portal.maxCooldown + realFreezeTime;
+                this.cooldown = this.maxCooldown + realFreezeTime;
                 portal.portal.Color = this.cooldownColor;
                 this.portal.Color = this.cooldownColor;
                 this.level.Session.SetFlag("portalOnCooldown" + readyColor.ToString(), true);
             }
+        }
+
+        private IEnumerator Transport(Player player, Vector2 cameraFrom) {
+            // TODO division by 0
+            this.level.Frozen = true;
+            float transportAt = 0f;
+            Vector2 cameraTo = this.level.GetFullCameraTargetAt(player, player.Position);
+            if (Vector2.Distance(cameraFrom, cameraTo) > 50f) {
+                while (transportAt < 1f) {
+                    yield return null;
+                    transportAt = Calc.Approach(transportAt, 1f, Engine.DeltaTime / realFreezeTime);
+                    this.level.Camera.Position = Vector2.Lerp(cameraFrom, cameraTo, Ease.CubeOut(transportAt));
+                }
+                this.level.Camera.Position = cameraTo;
+            } else {
+                yield return realFreezeTime;
+            }
+            this.level.OnEndOfFrame += delegate() {
+                this.level.Frozen = false;
+            };
+            yield break;
+        }
+
+        private IEnumerator EmitLine() {
+            float lineDirection = Calc.Angle(this.Position, this.otherPortal.Position);
+            float lineLength = Vector2.Distance(this.Position, this.otherPortal.Position);
+
+            float emitAt = 0f;
+            float nextFrameEmitAt = 0f;
+            // how much to advance each frame, roughly 1.5 times faster than linear
+            float emitAtFrame = realFreezeTime <= 0.05f ? 1f :
+                Math.Min(Engine.DeltaTime / realFreezeTime, 1f);
+            // How much to advace each step, to keep constant spacing of 10 pixels
+            float emitAtStep = Calc.Clamp(0.00001f, 10f / lineLength, 0.2f);
+            // A guard to prevent dead loops
+            int emitCount = 0;
+            while (emitCount < 1000000 & emitAt < 1f) {
+                yield return null;
+                nextFrameEmitAt += emitAtFrame;
+                while (emitCount < 10000 & emitAt < Ease.CubeOut(nextFrameEmitAt)) {
+                    emitCount ++;
+                    emitAt += emitAtStep;
+                    this.level.ParticlesFG.Emit(
+                        P_PortalLine, 1,
+                        Vector2.Lerp(this.Position, this.otherPortal.Position, emitAt),
+                        Vector2.One * 2f,
+                        lineDirection);
+                }
+            }
+            yield break;
         }
 
 
@@ -338,6 +394,14 @@ namespace Celeste.Mod.OutbackHelper {
         private Color cooldownColor = new Color(1f, 0.5f, 0.5f);
 
 
+        public float freezeCooldown = 0f;
+
+
+        private float realFreezeTime {
+            get => freezeCooldown < 0f ? OutbackModule.Settings.FreezeTime : freezeCooldown;
+        }
+
+
         public float teleportInsideCooldown;
 
 
@@ -394,5 +458,8 @@ namespace Celeste.Mod.OutbackHelper {
 
             Right
         }
+
+
+        public static ParticleType P_PortalLine;
     }
 }

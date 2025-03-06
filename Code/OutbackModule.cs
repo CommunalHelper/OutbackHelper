@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -6,6 +7,15 @@ namespace Celeste.Mod.OutbackHelper
 {
     public class OutbackModule : EverestModule
     {
+        public static OutbackModule Instance;
+
+        public OutbackModule() {
+            Instance = this;
+        }
+
+        public override Type SettingsType => typeof(OutbackModuleSettings);
+        public static OutbackModuleSettings Settings => (OutbackModuleSettings) Instance._Settings;
+
         public static SpriteBank SpriteBank;
     
         private static FieldInfo pufferPushRadius = typeof(Puffer).GetField("pushRadius", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -16,6 +26,20 @@ namespace Celeste.Mod.OutbackHelper
         {
             Everest.Events.Level.OnLoadEntity += new Everest.Events.Level.LoadEntityHandler(this.OnLoadEntity);
             On.Celeste.Puffer.Explode += Puffer_Explode;
+            Portal.P_PortalLine = new ParticleType
+            {
+                Color = Color.White,
+                Color2 = Color.White * 0.7f,
+                ColorMode = ParticleType.ColorModes.Blink,
+                FadeMode = ParticleType.FadeModes.Late,
+                LifeMin = 0.3f,
+                LifeMax = 0.7f,
+                Size = 1f,
+                SpeedMin = 10f,
+                SpeedMax = 20f,
+                Acceleration = new Vector2(0f, 8f),
+                DirectionRange = 0.5f,
+            };
         }
 
         public override void LoadContent(bool firstLoad)
@@ -86,6 +110,29 @@ namespace Celeste.Mod.OutbackHelper
                 }
             }
             return true;
+        }
+    }
+
+    public class OutbackModuleSettings : EverestModuleSettings
+    {
+        public enum FreezeTimerValues
+        {
+            None,
+            VeryShort,
+            Short,
+            Medium,
+            Long,
+            VeryLong
+        }
+
+        public static float[] FreezeTimerInSeconds = new float[] {
+            0f, 0.1f, 0.2f, 0.3f, 0.5f, 1f
+        };
+
+        public FreezeTimerValues DefaultPortalFreezeTime { get; set; } = FreezeTimerValues.None;
+
+        public float FreezeTime {
+            get => FreezeTimerInSeconds[(int)DefaultPortalFreezeTime];
         }
     }
 }
